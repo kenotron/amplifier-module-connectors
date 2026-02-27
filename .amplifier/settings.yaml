@@ -1,4 +1,4 @@
 bundle:
-  active: amplifier-template-dev
+  active: amplifier-connector-slack-dev
   added:
-    amplifier-template-dev: ./.amplifier/bundle.md
+    amplifier-connector-slack-dev: ./.amplifier/bundle.md

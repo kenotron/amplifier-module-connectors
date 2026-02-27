@@ -1,0 +1,19 @@
+[project]
+name = "tool-slack-reply"
+version = "0.1.0"
+description = "Amplifier Tool module — lets agents post messages to Slack"
+requires-python = ">=3.11"
+dependencies = [
+    "slack-sdk>=3.0",
+    # amplifier-core is a peer dependency (provided by runtime) — do NOT list it
+]
+
+[project.entry-points."amplifier.modules"]
+tool-slack-reply = "tool_slack_reply:mount"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["tool_slack_reply"]

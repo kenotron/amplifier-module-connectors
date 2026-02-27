@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Data (runtime sessions and logs)
+data/
+
+# macOS
+.DS_Store
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+
+# Amplifier cache
+.amplifier/cache/

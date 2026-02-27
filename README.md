@@ -1,127 +1,143 @@
-# amplifier-template
+# amplifier-connector-slack
 
-An opinionated [Amplifier](https://github.com/microsoft/amplifier) starter — everything you need to have a capable AI assistant running in your project in under 5 minutes, with no prior knowledge of Amplifier required.
+A Slack bot that bridges Slack messages to [Amplifier](https://github.com/microsoft/amplifier) AI sessions via Socket Mode.
 
----
+**What it does:** Users send messages to a Slack channel → an Amplifier session processes them → responses are posted back to Slack. Each channel has its own persistent conversation context.
 
-## Getting Started
+## Architecture
 
-Two prerequisites, then four commands. That's it.
+```
+Slack ──── Socket Mode ────► Bot Daemon (asyncio)
+                                    │
+                         ┌──────────▼──────────┐
+                         │  SlackAmplifierBot  │
+                         │  PreparedBundle ×1  │
+                         │  Sessions: per-ch.  │
+                         └──────────┬──────────┘
+                                    │ session.execute()
+                                    ▼
+                         ┌──────────────────────┐
+                         │  AmplifierSession    │
+                         │  (one per channel)   │
+                         │  • provider-anthropic│
+                         │  • loop-streaming    │
+                         │  • tool-slack-reply  │
+                         │  • tool-web/search   │
+                         └──────────────────────┘
+```
 
-### Prerequisites
+## Setup
 
-- **[uv](https://docs.astral.sh/uv/getting-started/installation/)** — Python package manager
+### 1. Create a Slack App
 
-  ```bash
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  ```
+1. Go to https://api.slack.com/apps → **Create New App** → **From scratch**
+2. **Enable Socket Mode**: Settings → Socket Mode → Enable
+3. **Generate App-Level Token**:
+   - Basic Information → App-level tokens → Generate Token and Scopes
+   - Name: `socket-mode`, Scope: `connections:write`
+   - Save the `xapp-...` token
+4. **Add Bot Scopes** (OAuth & Permissions → Bot Token Scopes):
+   - `chat:write` — send messages
+   - `channels:history` — read channel messages
+   - `channels:read` — list channels
+   - `reactions:write` — add/remove reactions (loading indicator)
+   - `app_mentions:read` — receive @mention events
+   - `channels:join` — auto-join channels (optional)
+5. **Subscribe to Events** (Event Subscriptions → Subscribe to bot events):
+   - `message.channels` — messages in public channels
+   - `app_mention` — @mentions
+6. **Install to Workspace**: OAuth & Permissions → Install to Workspace
+   - Save the `xoxb-...` Bot Token
 
-- **[gh](https://cli.github.com/)** — GitHub CLI (and run `gh auth login` if you haven't already)
-
-  ```bash
-  # macOS
-  brew install gh
-
-  # Windows / Linux: https://cli.github.com/
-  ```
-
----
-
-### Step 1 — Install Amplifier
+### 2. Configure Environment
 
 ```bash
-uv tool install git+https://github.com/microsoft/amplifier
+cp .env.example .env
+# Edit .env with your tokens
 ```
 
----
-
-### Step 2 — Create your project from this template
+### 3. Install
 
 ```bash
-gh repo create my-project --template kenotron-ms/amplifier-template --public --clone
-cd my-project
+# Install the bot and its tool module
+pip install -e .
+pip install -e modules/tool-slack-reply
 ```
 
-Replace `my-project` with whatever you want to call your repo. Use `--private` if you prefer.
-
----
-
-### Step 3 — Initialize
+### 4. Run
 
 ```bash
-amplifier init
+# Watch a specific channel (recommended for testing)
+slack-connector start --channel C0AJBKTR0JU
+
+# Watch all channels the bot is in
+slack-connector start
+
+# Debug mode
+slack-connector start --channel C0AJBKTR0JU --debug
 ```
 
-The wizard will ask for your AI provider and API key (Anthropic, OpenAI, Azure, Gemini, or Ollama) and wire everything up automatically.
+### 5. Invite the bot to your channel
 
----
+In Slack: `/invite @your-bot-name` in channel `#your-channel`
 
-### Step 4 — Start chatting
+## Running as a macOS Daemon (launchd)
 
 ```bash
-amplifier
+# Edit the plist with your actual paths and tokens
+cp launchd/com.amplifier.slack-connector.plist \
+   ~/Library/LaunchAgents/com.amplifier.slack-connector.plist
+
+# Edit the plist file — fill in YOUR paths and tokens
+nano ~/Library/LaunchAgents/com.amplifier.slack-connector.plist
+
+# Load and start
+launchctl load ~/Library/LaunchAgents/com.amplifier.slack-connector.plist
+launchctl start com.amplifier.slack-connector
+
+# Check status
+launchctl list com.amplifier.slack-connector
+
+# View logs
+tail -f /tmp/slack-connector.log
 ```
 
-That's it. You now have a fully configured AI assistant with persistent memory, multi-agent capabilities, structured workflows, and more — all scoped to your project.
+## Configuration
 
----
+| Environment Variable | Required | Description |
+|---|---|---|
+| `SLACK_BOT_TOKEN` | Yes | Bot OAuth token (`xoxb-...`) |
+| `SLACK_APP_TOKEN` | Yes | App-level token (`xapp-...`) for Socket Mode |
+| `ANTHROPIC_API_KEY` | Yes | Anthropic API key for Claude |
+| `SLACK_CHANNEL_ID` | No | Restrict responses to this channel ID |
 
-## What's Included
+## Bundle Customization
 
-This template is a curated set of Amplifier behaviors. Here's what you get out of the box:
+Edit `bundle.md` to customize the bot's capabilities:
 
-### Behaviors
+- Change the LLM model (`default_model`)
+- Add more tools (`tool-filesystem`, `tool-bash` — be careful with public access)
+- Modify the system prompt in the markdown body
+- Add Amplifier behaviors via `includes:`
 
-| Behavior | What it gives you |
-|----------|-------------------|
-| **amplifier-expert** | Built-in consultant for the Amplifier ecosystem itself — ask it anything about modules, bundles, or configuration |
-| **agents** | Spawns specialist sub-agents automatically for heavy tasks (code exploration, debugging, architecture, git operations, web research) |
-| **streaming-ui** | Responses stream in real time instead of appearing all at once |
-| **status-context** | The assistant always knows your current git branch, working directory, and the date — no need to tell it |
-| **todo-reminder** | Keeps the assistant on track during multi-step work with a visible task list |
-| **redaction** | Scrubs secrets and API keys from output before they can leak |
-| **recipes** | Reusable multi-step workflows with approval gates — great for things like full feature development cycles |
-| **modes** | Behavioral overlays you can toggle: `/brainstorm`, `/debug`, `/execute-plan`, `/verify`, `/finish` |
-| **skills** | Domain knowledge packages that load on demand — bring structured best practices into any session |
-| **apply-patch** | Lets the assistant make precise multi-file edits in a single operation |
-| **engram** | Persistent memory — the assistant remembers context across sessions |
+## Project Structure
 
-### Sub-Agents (called automatically when needed)
-
-| Agent | What it handles |
-|-------|----------------|
-| `explorer` | Surveying large codebases across many files |
-| `file-ops` | Targeted file reads, writes, and searches |
-| `git-ops` | Commits, PRs, branch management, GitHub API |
-| `bug-hunter` | Systematic debugging |
-| `modular-builder` | Implementing from a spec |
-| `zen-architect` | Architecture design, code review, planning |
-| `web-research` | Multi-source web research |
-
-### Session Configuration
-
-| Setting | Value |
-|---------|-------|
-| Orchestrator | `loop-streaming` (real-time output) |
-| Extended thinking | Enabled |
-| Max context | 200,000 tokens |
-| Auto-compact | Yes — long sessions stay running automatically |
-
----
-
-## Extending This Template
-
-Add more behaviors by editing `.amplifier/bundle.md` and appending to the `includes:` list:
-
-```yaml
-includes:
-  - bundle: git+https://github.com/your-org/your-bundle@main#subdirectory=behaviors/your-behavior.yaml
+```
+amplifier-module-connectors/
+├── bundle.md                      # Bot's Amplifier session config
+├── pyproject.toml                 # Python package (slack-connector CLI)
+├── src/slack_connector/
+│   ├── bot.py                     # Core: SlackAmplifierBot (Pattern B)
+│   ├── bridge.py                  # Protocol boundaries (Approval, Display, Streaming)
+│   └── cli.py                     # CLI entry point
+├── modules/tool-slack-reply/      # Custom Amplifier tool module
+│   └── tool_slack_reply/tool.py
+├── behaviors/slack-connector.yaml # Reusable behavior for other bundles
+├── context/slack-instructions.md  # Slack-specific agent instructions
+├── launchd/                       # macOS daemon configuration
+└── .amplifier/bundle.md           # Dev environment bundle (for Amplifier CLI)
 ```
 
-See the [Amplifier Foundation Bundle Guide](https://github.com/microsoft/amplifier-foundation) for how to author your own.
+## Acknowledgments
 
----
-
-## License
-
-MIT
+Built on [Amplifier](https://github.com/microsoft/amplifier) and [Slack Bolt for Python](https://github.com/slackapi/bolt-python).

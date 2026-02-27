@@ -1,0 +1,19 @@
+# Reusable behavior that adds Slack connectivity to any Amplifier bundle.
+#
+# Usage in your own bundle.md:
+#   includes:
+#     - bundle: git+https://github.com/YOUR_ORG/amplifier-module-connectors@main#subdirectory=behaviors/slack-connector.yaml
+#
+# This adds:
+#   - tool-slack-reply: lets the agent post Slack messages
+#   - Slack-aware instructions injected into context
+bundle:
+  name: slack-connector-behavior
+  version: 1.0.0
+  description: Adds Slack message posting capability to any Amplifier session
+
+tools:
+  - module: tool-slack-reply
+    source: ./modules/tool-slack-reply
+    config:
+      max_message_length: 3000

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  macOS launchd service for the Amplifier Slack Connector.
+
+  Setup:
+    1. Fill in the paths below (replace ALL_CAPS placeholders)
+    2. Add your tokens to EnvironmentVariables (or use a secrets manager)
+    3. Copy to ~/Library/LaunchAgents/com.amplifier.slack-connector.plist
+    4. Load: launchctl load ~/Library/LaunchAgents/com.amplifier.slack-connector.plist
+    5. Start: launchctl start com.amplifier.slack-connector
+
+  Management:
+    Status:  launchctl list com.amplifier.slack-connector
+    Logs:    tail -f /tmp/slack-connector.log
+    Stop:    launchctl stop com.amplifier.slack-connector
+    Unload:  launchctl unload ~/Library/LaunchAgents/com.amplifier.slack-connector.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.amplifier.slack-connector</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <!-- Replace with: which slack-connector (after: pip install -e .) -->
+        <string>/REPLACE/WITH/PATH/TO/slack-connector</string>
+        <string>start</string>
+        <string>--channel</string>
+        <string>C0AJBKTR0JU</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- Replace with your actual tokens -->
+        <key>SLACK_BOT_TOKEN</key>
+        <string>xoxb-REPLACE-WITH-YOUR-BOT-TOKEN</string>
+        <key>SLACK_APP_TOKEN</key>
+        <string>xapp-REPLACE-WITH-YOUR-APP-TOKEN</string>
+        <key>ANTHROPIC_API_KEY</key>
+        <string>sk-ant-REPLACE-WITH-YOUR-KEY</string>
+        <!-- Working directory for relative paths in bundle.md -->
+        <key>HOME</key>
+        <string>/Users/ken</string>
+    </dict>
+
+    <!-- Keep alive: launchd will restart if the process exits -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Start when loaded -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Restart delay in seconds after crash -->
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <!-- Working directory (where bundle.md lives) -->
+    <key>WorkingDirectory</key>
+    <string>/Users/ken/workspace/amplifier-module-connectors</string>
+
+    <!-- Logs -->
+    <key>StandardOutPath</key>
+    <string>/tmp/slack-connector.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/slack-connector-error.log</string>
+</dict>
+</plist>

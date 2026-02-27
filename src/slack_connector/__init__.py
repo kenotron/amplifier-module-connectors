@@ -1,0 +1,1 @@
+"""Slack connector for Amplifier."""

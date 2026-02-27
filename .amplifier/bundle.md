@@ -1,6 +1,6 @@
 ---
 bundle:
-  name: amplifier-template-dev
+  name: amplifier-connector-slack-dev
   version: 1.0.0
   description: Opinionated slim Amplifier starter — cherry-picked behaviors, no bloat.
 
