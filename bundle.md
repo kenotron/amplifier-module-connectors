@@ -15,6 +15,11 @@ session:
       max_tokens: 200000
       compact_threshold: 0.8
       auto_compact: true
+  memory:
+    module: engram
+    source: git+https://github.com/microsoft/amplifier-module-engram@main
+    config:
+      storage_path: ./data/memory
 
 providers:
   - module: provider-anthropic
